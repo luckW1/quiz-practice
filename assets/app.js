@@ -148,16 +148,64 @@
 
   /* ---------------- 渲染题目 ---------------- */
 
+  var CODE_START = /^\s*(?:public|private|protected|class|interface|import|package|static|final|abstract)\b/;
+  var TOK = /\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|（\d+）|\b(?:public|private|protected|class|interface|extends|implements|import|package|static|final|abstract|void|int|long|short|byte|char|float|double|boolean|String|StringBuffer|StringBuilder|new|return|if|else|for|while|do|switch|case|break|continue|default|true|false|null|this|super|try|catch|finally|throws|throw|throws)\b|\b\d+(?:\.\d+)?\b/g;
+
+  function escHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function highlight(line) {
+    var out = '', last = 0, m;
+    TOK.lastIndex = 0;
+    while ((m = TOK.exec(line))) {
+      out += escHtml(line.slice(last, m.index));
+      var t = m[0], cls;
+      if (t.slice(0, 2) === '//') cls = 'cm';
+      else if (t.charAt(0) === '"' || t.charAt(0) === "'") cls = 'str';
+      else if (t.charAt(0) === '（') cls = 'blank';
+      else if (/^\d/.test(t)) cls = 'num';
+      else cls = 'kw';
+      out += '<span class="' + cls + '">' + escHtml(t) + '</span>';
+      last = m.index + t.length;
+    }
+    return out + escHtml(line.slice(last));
+  }
+
+  function buildCode(lines) {
+    var wrap = el('div', 'code-panel');
+    var head = el('div', 'code-head');
+    head.appendChild(el('span', 'code-label', '程序代码'));
+    head.appendChild(el('span', 'code-lines', lines.length + ' 行'));
+    wrap.appendChild(head);
+
+    var pre = document.createElement('pre');
+    pre.className = 'code';
+    pre.innerHTML = lines.map(function (l) {
+      return '<span class="cl">' + (l.trim() ? highlight(l) : '&nbsp;') + '</span>';
+    }).join('');
+    wrap.appendChild(pre);
+    return wrap;
+  }
+
   function renderStem(q) {
     var box = $('qStem');
     box.innerHTML = '';
-    var idx = q.q.indexOf('\n');
-    if (idx < 0) {
-      box.appendChild(el('p', '', q.q));
-    } else {
-      box.appendChild(el('p', '', q.q.slice(0, idx)));
-      box.appendChild(el('pre', 'code', q.q.slice(idx + 1)));
+    var lines = q.q.split('\n');
+
+    var codeAt = -1;
+    for (var i = 0; i < lines.length; i++) {
+      if (CODE_START.test(lines[i])) { codeAt = i; break; }
     }
+
+    if (codeAt < 0) {
+      box.appendChild(el('p', '', q.q));
+      return;
+    }
+    var textPart = lines.slice(0, codeAt).join(' ').trim();
+    var codePart = lines.slice(codeAt);
+    if (textPart) box.appendChild(el('p', '', textPart));
+    box.appendChild(buildCode(codePart));
   }
 
   function render() {

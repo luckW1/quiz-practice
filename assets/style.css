@@ -200,17 +200,80 @@ button { font-family: inherit; font-size: inherit; cursor: pointer; }
 .stem p { margin: 0 0 12px; }
 .stem p:last-child { margin-bottom: 0; }
 
-pre.code {
-  margin: 0 0 4px;
-  padding: 14px 16px;
-  background: var(--code-bg);
+.code-panel {
+  margin: 10px 0 2px;
   border: 1px solid var(--line);
   border-radius: 12px;
+  background: var(--code-bg);
+  overflow: hidden;
+}
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+.code-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #475569;
+  letter-spacing: .3px;
+}
+.code-label::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.code-lines { font-variant-numeric: tabular-nums; }
+
+pre.code {
+  margin: 0;
+  padding: 12px 14px 12px 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   font-family: "JetBrains Mono", "Cascadia Code", Consolas, "Courier New", monospace;
   font-size: 13.5px;
-  line-height: 1.65;
+  line-height: 1.7;
   overflow-x: auto;
   tab-size: 4;
+  counter-reset: line;
+}
+pre.code .cl {
+  display: block;
+  position: relative;
+  padding-left: 3em;
+  white-space: pre;
+}
+pre.code .cl::before {
+  counter-increment: line;
+  content: counter(line);
+  position: absolute;
+  left: 0;
+  width: 2.2em;
+  text-align: right;
+  color: #c3c8d6;
+  font-size: 12px;
+  user-select: none;
+}
+.kw { color: #7c3aed; }
+.str { color: #0f766e; }
+.cm { color: #94a3b8; font-style: italic; }
+.num { color: #b45309; }
+.blank {
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+  border-radius: 5px;
+  padding: 0 3px;
+  font-weight: 600;
 }
 
 .answer-area { margin-top: 22px; }
@@ -441,7 +504,9 @@ pre.code {
   }
 
   .stem { font-size: 16px; line-height: 1.8; }
-  pre.code { font-size: 12.5px; padding: 12px 12px; }
+  pre.code { font-size: 12.5px; padding: 10px 10px 10px 0; }
+  pre.code .cl { padding-left: 2.5em; }
+  pre.code .cl::before { width: 1.9em; font-size: 11px; }
 
   .option { padding: 14px; min-height: 52px; }
   .judge-btn { padding: 18px 12px; }
