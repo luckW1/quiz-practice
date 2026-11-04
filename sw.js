@@ -1,14 +1,15 @@
 'use strict';
 
-var CACHE_NAME = 'quiz-practice-v5';
+var CACHE_NAME = 'quiz-practice-v9';
 var APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
-  './assets/style.css?v=5',
-  './assets/data.js?v=5',
-  './assets/core.js?v=5',
-  './assets/app.js?v=5',
+  './assets/style.css?v=9',
+  './assets/data.js?v=9',
+  './assets/core.js?v=9',
+  './assets/code.js?v=9',
+  './assets/app.js?v=9',
   './assets/icon.svg',
   './assets/icon-192.png',
   './assets/icon-512.png'

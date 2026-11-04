@@ -7,6 +7,7 @@ Java《程序设计基础》与《数据库原理及应用》题库的纯静态�
 - 单选 231 · 判断 120 · 填空 81 · 简答 118
 - 随机 / 顺序练习，可按题库、题型筛选
 - 选择、判断、填空即时判分；简答对照参考答案自评
+- Java 程序自动拆分、格式化并高亮，SQL 参考答案按语句结构展示
 - 错题自动收集，可「只练错题」，支持「这次算我对」改判
 - 练习记录保存在浏览器本地（localStorage），关掉再开继续
 - 手机端适配：抽屉式筛选面板、底部导航、可添加到主屏幕（PWA）
@@ -58,6 +59,7 @@ manifest.json         PWA 配置
 assets/style.css      样式（含移动端适配）
 assets/app.js         练习逻辑
 assets/core.js        填空判分逻辑
+assets/code.js        代码提取、格式化与语法高亮
 assets/data.js        题库数据（window.QUESTIONS）
 assets/icon-*.png     应用图标
 sw.js                 离线缓存 Service Worker
@@ -72,5 +74,5 @@ gen_icons.py          图标生成脚本
 ## 验证
 
 ```bash
-node --test tests/validate.mjs
+node --test tests/validate.mjs tests/code.test.mjs
 ```

@@ -7,6 +7,7 @@
   var REC_KEY = 'qbank.records.v1';
   var CFG_KEY = 'qbank.config.v1';
   var core = window.QuizCore;
+  var code = window.QuizCode;
 
   var $ = function (id) { return document.getElementById(id); };
   function el(tag, cls, text) {
@@ -180,41 +181,63 @@
 
   /* ---------------- 渲染题目 ---------------- */
 
-  var CODE_START = /^\s*(?:public|private|protected|class|interface|import|package|static|final|abstract)\b/;
-  var TOK = /\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|（\d+）|\b(?:public|private|protected|class|interface|extends|implements|import|package|static|final|abstract|void|int|long|short|byte|char|float|double|boolean|String|StringBuffer|StringBuilder|new|return|if|else|for|while|do|switch|case|break|continue|default|true|false|null|this|super|try|catch|finally|throws|throw|throws)\b|\b\d+(?:\.\d+)?\b/g;
-
-  function escHtml(s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  function highlight(line) {
-    var out = '', last = 0, m;
-    TOK.lastIndex = 0;
-    while ((m = TOK.exec(line))) {
-      out += escHtml(line.slice(last, m.index));
-      var t = m[0], cls;
-      if (t.slice(0, 2) === '//') cls = 'cm';
-      else if (t.charAt(0) === '"' || t.charAt(0) === "'") cls = 'str';
-      else if (t.charAt(0) === '（') cls = 'blank';
-      else if (/^\d/.test(t)) cls = 'num';
-      else cls = 'kw';
-      out += '<span class="' + cls + '">' + escHtml(t) + '</span>';
-      last = m.index + t.length;
+  function copyCode(text, button) {
+    var label = button.querySelector('.code-copy-text');
+    function done() {
+      button.classList.add('copied');
+      if (label) label.textContent = '已复制';
+      window.setTimeout(function () {
+        button.classList.remove('copied');
+        if (label) label.textContent = '复制';
+      }, 1600);
     }
-    return out + escHtml(line.slice(last));
+    function fallback() {
+      var field = document.createElement('textarea');
+      field.value = text;
+      field.setAttribute('readonly', '');
+      field.style.position = 'fixed';
+      field.style.opacity = '0';
+      document.body.appendChild(field);
+      field.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      field.remove();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(fallback);
+    } else {
+      fallback();
+    }
   }
 
-  function buildCode(lines) {
+  function buildCode(source, language, subtitle) {
+    var lang = language || code.languageOf(source) || 'java';
+    var formatted = code.formatCode(source, lang);
+    var lines = formatted.split('\n');
     var wrap = el('div', 'code-panel');
     var head = el('div', 'code-head');
-    head.appendChild(el('span', 'code-label', '程序代码'));
-    head.appendChild(el('span', 'code-lines', lines.length + ' 行'));
+    var meta = el('div', 'code-meta');
+    var label = el('span', 'code-label');
+    label.appendChild(el('span', 'code-language', lang === 'sql' ? 'SQL' : 'Java'));
+    label.appendChild(el('span', 'code-subtitle', subtitle || '程序代码'));
+    meta.appendChild(label);
+    head.appendChild(meta);
+
+    var actions = el('div', 'code-actions');
+    actions.appendChild(el('span', 'code-lines', lines.length + ' 行'));
+    var copy = el('button', 'code-copy');
+    copy.type = 'button';
+    copy.setAttribute('aria-label', '复制代码');
+    copy.appendChild(el('span', 'code-copy-icon'));
+    copy.appendChild(el('span', 'code-copy-text', '复制'));
+    copy.addEventListener('click', function () { copyCode(formatted, copy); });
+    actions.appendChild(copy);
+    head.appendChild(actions);
     wrap.appendChild(head);
 
     var pre = document.createElement('pre');
     pre.className = 'code';
     pre.innerHTML = lines.map(function (l) {
-      return '<span class="cl">' + (l.trim() ? highlight(l) : '&nbsp;') + '</span>';
+      return '<span class="cl">' + (l.trim() ? code.highlightLine(l, lang) : '&nbsp;') + '</span>';
     }).join('');
     wrap.appendChild(pre);
     return wrap;
@@ -223,21 +246,14 @@
   function renderStem(q) {
     var box = $('qStem');
     box.innerHTML = '';
-    var lines = q.q.split('\n');
-
-    var codeAt = -1;
-    for (var i = 0; i < lines.length; i++) {
-      if (CODE_START.test(lines[i])) { codeAt = i; break; }
-    }
-
-    if (codeAt < 0) {
+    var program = code.extractProgram(q.q);
+    if (!program) {
       box.appendChild(el('p', '', q.q));
       return;
     }
-    var textPart = lines.slice(0, codeAt).join(' ').trim();
-    var codePart = lines.slice(codeAt);
-    if (textPart) box.appendChild(el('p', '', textPart));
-    box.appendChild(buildCode(codePart));
+    if (program.before) box.appendChild(el('p', '', program.before));
+    box.appendChild(buildCode(program.code, 'java', '程序代码'));
+    if (program.after) box.appendChild(el('p', 'code-after', program.after));
   }
 
   function render() {
@@ -283,7 +299,15 @@
     q.o.forEach(function (text, i) {
       var b = el('button', 'option');
       b.appendChild(el('span', 'letter', LETTERS[i]));
-      b.appendChild(el('span', 'text', text));
+      var content = el('span', 'text');
+      if (code.isInlineCode(text)) {
+        var inline = el('code', 'code-inline');
+        inline.innerHTML = code.highlightLine(text, code.languageOf(text) || 'java');
+        content.appendChild(inline);
+      } else {
+        content.textContent = text;
+      }
+      b.appendChild(content);
       b.addEventListener('click', function () { pickOption(i); });
       box.appendChild(b);
     });
@@ -415,10 +439,15 @@
     var btn = el('button', 'btn primary', '显示参考答案');
     btn.addEventListener('click', function () {
       btn.disabled = true;
-      var box = el('div', 'short-answer');
-      box.appendChild(el('span', 'label', '参考答案'));
-      box.appendChild(document.createTextNode(q.a));
-      $('qArea').appendChild(box);
+      var answerLanguage = code.languageOf(q.a, true);
+      if (answerLanguage) {
+        $('qArea').appendChild(buildCode(q.a, answerLanguage, '参考答案'));
+      } else {
+        var box = el('div', 'short-answer');
+        box.appendChild(el('span', 'label', '参考答案'));
+        box.appendChild(document.createTextNode(q.a));
+        $('qArea').appendChild(box);
+      }
 
       var self = el('div', 'btn-row');
       var yes = el('button', 'btn', '我答对了');
