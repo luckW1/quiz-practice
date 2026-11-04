@@ -1,5 +1,7 @@
 # 题库随机练习
 
+在线练习：<https://luckw1.github.io/quiz-practice/>（手机可「添加到主屏幕」）
+
 Java《程序设计基础》与《数据库原理及应用》题库的纯静态练习网站，共 550 题。
 
 - 单选 231 · 判断 120 · 填空 81 · 简答 118
@@ -18,7 +20,11 @@ python -m http.server 8000
 # 打开 http://localhost:8000
 ```
 
-## 部署到 GitHub Pages
+## 部署到 GitHub Pages（已完成）
+
+仓库 <https://github.com/luckW1/quiz-practice> 已开启 Pages：`main` 分支根目录，推送后自动重新构建。
+
+首次部署步骤（留档）：
 
 仓库已初始化并完成首次提交，推送到 GitHub 后在仓库设置里开启 Pages 即可：
 
