@@ -1,11 +1,12 @@
 (function () {
   'use strict';
 
-  var Q = window.QUESTIONS || [];
+  var Q = Array.isArray(window.QUESTIONS) ? window.QUESTIONS : [];
   var TYPE_NAME = { choice: '单选题', judge: '判断题', fill: '填空题', short: '简答题' };
   var LETTERS = 'ABCDEF';
   var REC_KEY = 'qbank.records.v1';
   var CFG_KEY = 'qbank.config.v1';
+  var core = window.QuizCore;
 
   var $ = function (id) { return document.getElementById(id); };
   function el(tag, cls, text) {
@@ -21,10 +22,22 @@
     } catch (e) { return def; }
   }
 
-  var banks = Q.map(function (q) { return q.src; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
+  var QUESTION_BY_ID = Object.create(null);
+  var BANK_COUNTS = Object.create(null);
+  var BANK_TYPE_COUNTS = Object.create(null);
+  var banks = [];
+  Q.forEach(function (q) {
+    QUESTION_BY_ID[q.id] = q;
+    if (banks.indexOf(q.src) < 0) {
+      banks.push(q.src);
+      BANK_TYPE_COUNTS[q.src] = Object.create(null);
+    }
+    BANK_COUNTS[q.src] = (BANK_COUNTS[q.src] || 0) + 1;
+    BANK_TYPE_COUNTS[q.src][q.t] = (BANK_TYPE_COUNTS[q.src][q.t] || 0) + 1;
+  });
   var ALL_TYPES = ['choice', 'judge', 'fill', 'short'];
 
-  var records = readJSON(REC_KEY, {});
+  var records = normalizeRecords(readJSON(REC_KEY, {}));
   var cfg = readJSON(CFG_KEY, {});
   cfg.banks = Array.isArray(cfg.banks) ? cfg.banks.filter(function (b) { return banks.indexOf(b) >= 0; }) : banks.slice();
   if (!cfg.banks.length) cfg.banks = banks.slice();
@@ -33,7 +46,7 @@
   cfg.mode = cfg.mode === 'order' ? 'order' : 'random';
   cfg.onlyWrong = !!cfg.onlyWrong;
 
-  var state = { pool: [], idx: 0, answered: false, picked: [] };
+  var state = { pool: [], idx: 0, answered: false, picked: [], removeOnNext: null };
 
   function saveRecords() {
     try { localStorage.setItem(REC_KEY, JSON.stringify(records)); } catch (e) {}
@@ -42,9 +55,23 @@
     try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
   }
 
+  function normalizeRecords(value) {
+    var clean = {};
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return clean;
+    Q.forEach(function (q) {
+      var item = value[q.id];
+      if (!item || typeof item !== 'object' || typeof item.ok !== 'boolean') return;
+      clean[q.id] = {
+        ok: item.ok,
+        ts: typeof item.ts === 'number' && isFinite(item.ts) ? item.ts : Date.now()
+      };
+    });
+    return clean;
+  }
+
   function current() {
     var id = state.pool[state.idx];
-    return id == null ? null : Q[id];
+    return id == null ? null : QUESTION_BY_ID[id] || null;
   }
 
   /* ---------------- 侧边栏 ---------------- */
@@ -53,7 +80,7 @@
     var bankBox = $('bankChips');
     bankBox.innerHTML = '';
     banks.forEach(function (b) {
-      var n = Q.filter(function (q) { return q.src === b; }).length;
+      var n = BANK_COUNTS[b] || 0;
       var btn = el('button', 'chip' + (cfg.banks.indexOf(b) >= 0 ? ' active' : ''), b + ' · ' + n);
       btn.addEventListener('click', function () {
         var i = cfg.banks.indexOf(b);
@@ -71,7 +98,9 @@
     var typeBox = $('typeChips');
     typeBox.innerHTML = '';
     ALL_TYPES.forEach(function (t) {
-      var n = Q.filter(function (q) { return cfg.banks.indexOf(q.src) >= 0 && q.t === t; }).length;
+      var n = cfg.banks.reduce(function (sum, b) {
+        return sum + (BANK_TYPE_COUNTS[b] && BANK_TYPE_COUNTS[b][t] || 0);
+      }, 0);
       if (!n) return;
       var btn = el('button', 'chip' + (cfg.types.indexOf(t) >= 0 ? ' active' : ''), TYPE_NAME[t] + ' · ' + n);
       btn.addEventListener('click', function () {
@@ -131,6 +160,7 @@
     state.idx = 0;
     state.answered = false;
     state.picked = [];
+    state.removeOnNext = null;
     updatePos();
   }
 
@@ -144,6 +174,8 @@
     $('posNow').textContent = n ? state.idx + 1 : 0;
     $('posAll').textContent = n;
     $('bar').style.width = n ? ((state.idx + 1) / n * 100) + '%' : '0%';
+    $('progress').setAttribute('aria-valuemax', String(n));
+    $('progress').setAttribute('aria-valuenow', String(n ? state.idx + 1 : 0));
   }
 
   /* ---------------- 渲染题目 ---------------- */
@@ -355,26 +387,8 @@
     $('qArea').appendChild(row);
   }
 
-  function norm(s) {
-    return String(s == null ? '' : s)
-      .replace(/[\s\u3000]/g, '')
-      .replace(/[，,。．.；;、]$/, '')
-      .replace(/（/g, '(').replace(/）/g, ')')
-      .replace(/[“”"'']/g, '')
-      .toLowerCase();
-  }
-
   function accept(input, answer) {
-    var g = norm(input);
-    if (!g) return false;
-    var alts = String(answer).split('或');
-    for (var i = 0; i < alts.length; i++) {
-      var a = norm(alts[i]);
-      if (!a) continue;
-      if (g === a) return true;
-      if (g.length >= 3 && (a.indexOf(g) >= 0 || g.indexOf(a) >= 0)) return true;
-    }
-    return false;
+    return core.accepts(input, answer);
   }
 
   function submitFill() {
@@ -393,7 +407,7 @@
       }
     });
     state.answered = true;
-    finish(allOk, '正确答案：' + q.a.join(' ｜ '), true);
+    finish(allOk, '正确答案：' + q.a.join(' ｜ '));
   }
 
   function renderShort(q) {
@@ -425,21 +439,23 @@
     if (!q) return;
     state.answered = true;
     row.remove();
-    finish(ok, ok ? '已记为答对。' : '已记为答错，可回看参考答案。', true);
+    finish(ok, ok ? '已记为答对。' : '已记为答错，可回看参考答案。');
   }
 
   /* ---------------- 反馈与计分 ---------------- */
 
-  function finish(ok, detail, keepDetail) {
+  function finish(ok, detail) {
     var q = current();
     if (!q) return;
     records[q.id] = { ok: ok, ts: Date.now() };
+    if (ok && cfg.onlyWrong) state.removeOnNext = q.id;
     saveRecords();
     updateStats();
 
     var fb = $('qFeedback');
     fb.hidden = false;
     fb.className = 'feedback ' + (ok ? 'ok' : 'no');
+    fb.innerHTML = '';
 
     var title = el('span', 'ans', ok ? '✓ 回答正确' : '✗ 回答错误');
     fb.appendChild(title);
@@ -451,6 +467,7 @@
         records[q.id] = { ok: true, ts: Date.now() };
         saveRecords();
         updateStats();
+        if (cfg.onlyWrong) state.removeOnNext = q.id;
         fb.className = 'feedback info';
         fb.innerHTML = '';
         fb.appendChild(el('span', 'ans', '已改判为答对，继续加油。'));
@@ -473,8 +490,31 @@
 
   /* ---------------- 导航 ---------------- */
 
+  function discardPendingQuestion() {
+    if (state.removeOnNext == null) return false;
+    var removeId = state.removeOnNext;
+    var oldIdx = state.idx;
+    state.removeOnNext = null;
+    state.pool = state.pool.filter(function (id) { return id !== removeId; });
+    state.answered = false;
+    state.picked = [];
+    if (!state.pool.length) {
+      state.idx = 0;
+      render();
+      flash('错题已经全部清空，切换题库或关闭“只练错题”继续练习。', 'info');
+      return true;
+    }
+    state.idx = Math.min(oldIdx, state.pool.length - 1);
+    return true;
+  }
+
   function goNext() {
     if (!state.pool.length) return;
+    if (discardPendingQuestion()) {
+      if (!state.pool.length) return;
+      render();
+      return;
+    }
     if (state.idx + 1 >= state.pool.length) {
       state.idx = 0;
       if (cfg.mode === 'random') {
@@ -496,6 +536,7 @@
 
   function goPrev() {
     if (!state.pool.length) return;
+    if (discardPendingQuestion() && !state.pool.length) return;
     state.idx = (state.idx - 1 + state.pool.length) % state.pool.length;
     state.answered = false;
     state.picked = [];
@@ -504,6 +545,7 @@
 
   function goRandom() {
     if (!state.pool.length) return;
+    if (discardPendingQuestion() && !state.pool.length) return;
     var i = state.idx;
     if (state.pool.length > 1) {
       while (i === state.idx) i = Math.floor(Math.random() * state.pool.length);
@@ -540,15 +582,24 @@
   });
 
   var sidebar = $('sidebar');
+  var menuBtn = $('menuBtn');
+  function setMenuState(open) {
+    sidebar.classList.toggle('open', open);
+    $('scrim').classList.toggle('show', open);
+    document.body.classList.toggle('menu-open', open);
+    menuBtn.setAttribute('aria-expanded', String(open));
+    sidebar.setAttribute('aria-hidden', String(!open));
+  }
   function openMenu() {
-    sidebar.classList.add('open');
-    $('scrim').classList.add('show');
+    setMenuState(true);
+    $('closeMenu').focus();
   }
   function closeMenu() {
-    sidebar.classList.remove('open');
-    $('scrim').classList.remove('show');
+    var wasOpen = sidebar.classList.contains('open');
+    setMenuState(false);
+    if (wasOpen) menuBtn.focus();
   }
-  $('menuBtn').addEventListener('click', openMenu);
+  menuBtn.addEventListener('click', openMenu);
   $('closeMenu').addEventListener('click', closeMenu);
   $('scrim').addEventListener('click', closeMenu);
 
@@ -557,12 +608,12 @@
   $('randBtn').addEventListener('click', goRandom);
 
   document.addEventListener('keydown', function (e) {
-    var tag = (e.target.tagName || '').toUpperCase();
-    if (tag === 'INPUT' || tag === 'TEXTAREA') {
-      if (e.key === 'Enter') { e.preventDefault(); submitFill(); }
-      return;
-    }
     if (e.key === 'Escape') { closeMenu(); return; }
+    var target = e.target;
+    var tag = (target.tagName || '').toUpperCase();
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
+    if ((tag === 'BUTTON' || tag === 'A') && (e.key === 'Enter' || e.key === ' ')) return;
+    if (sidebar.classList.contains('open')) return;
     var q = current();
     if (!q) return;
     var k = e.key.toUpperCase();
@@ -590,12 +641,18 @@
   /* ---------------- 启动 ---------------- */
 
   function init() {
+    sidebar.setAttribute('aria-hidden', String(window.matchMedia('(max-width: 900px)').matches));
     $('onlyWrong').checked = cfg.onlyWrong;
     renderChips();
     renderSeg();
     updateStats();
     buildPool();
     render();
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function () {});
+      });
+    }
   }
 
   init();

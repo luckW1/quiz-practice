@@ -3,7 +3,7 @@
   "short_name": "题库练习",
   "description": "Java 程序设计基础与数据库原理题库，随机练习、即时判分。",
   "lang": "zh-CN",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#4f46e5">
+<meta name="description" content="Java 程序设计基础与数据库原理及应用题库练习，共 550 题。">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="题库练习">
@@ -11,24 +12,24 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
-<link rel="stylesheet" href="assets/style.css?v=2">
+<link rel="stylesheet" href="assets/style.css?v=5">
 </head>
 <body>
 <header class="mobilebar">
   <span class="mtitle">题库练习</span>
-  <button class="mbtn" id="menuBtn">筛选 / 统计</button>
+  <button class="mbtn" id="menuBtn" aria-controls="sidebar" aria-expanded="false">筛选 / 统计</button>
 </header>
 <div class="scrim" id="scrim"></div>
 
 <div class="app">
-  <aside class="sidebar" id="sidebar">
+  <aside class="sidebar" id="sidebar" aria-label="练习设置">
     <div class="brand">
       <div class="logo">题</div>
       <div class="brand-text">
         <h1>题库随机练习</h1>
         <p id="bankTotal">共 0 题</p>
       </div>
-      <button class="closeBtn" id="closeMenu">完成</button>
+      <button class="closeBtn" id="closeMenu" aria-label="关闭练习设置">完成</button>
     </div>
 
     <section class="panel">
@@ -61,12 +62,11 @@
       <button class="ghost" id="resetBtn">重置练习记录</button>
     </section>
 
-    <p class="tips">快捷键：A/B/C/D 选答案，Enter 提交或下一题</p>
   </aside>
 
   <main class="main">
     <header class="topbar">
-      <div class="progress"><div id="bar"></div></div>
+      <div class="progress" id="progress" role="progressbar" aria-label="当前练习进度" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"><div id="bar"></div></div>
       <div class="pos"><span id="posNow">0</span> / <span id="posAll">0</span></div>
     </header>
 
@@ -78,7 +78,7 @@
       </div>
       <div class="stem" id="qStem"></div>
       <div class="answer-area" id="qArea"></div>
-      <div class="feedback" id="qFeedback" hidden></div>
+      <div class="feedback" id="qFeedback" role="status" aria-live="polite" aria-atomic="true" hidden></div>
     </section>
 
     <footer class="navbar">
@@ -88,7 +88,8 @@
     </footer>
   </main>
 </div>
-<script src="assets/data.js?v=2"></script>
-<script src="assets/app.js?v=2"></script>
+<script src="assets/data.js?v=5"></script>
+<script src="assets/core.js?v=5"></script>
+<script src="assets/app.js?v=5"></script>
 </body>
 </html>

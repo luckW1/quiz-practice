@@ -10,6 +10,7 @@ Java《程序设计基础》与《数据库原理及应用》题库的纯静态�
 - 错题自动收集，可「只练错题」，支持「这次算我对」改判
 - 练习记录保存在浏览器本地（localStorage），关掉再开继续
 - 手机端适配：抽屉式筛选面板、底部导航、可添加到主屏幕（PWA）
+- 首次联网访问后缓存题库与页面，可离线继续练习
 
 ## 本地运行
 
@@ -56,11 +57,20 @@ index.html            页面结构
 manifest.json         PWA 配置
 assets/style.css      样式（含移动端适配）
 assets/app.js         练习逻辑
+assets/core.js        填空判分逻辑
 assets/data.js        题库数据（window.QUESTIONS）
 assets/icon-*.png     应用图标
+sw.js                 离线缓存 Service Worker
+tests/validate.mjs    数据与判分测试
 gen_icons.py          图标生成脚本
 ```
 
 ## 更新题库
 
 题库数据由 `../build_site.py` 从两份纯文本题库生成，重新生成后再提交 `assets/data.js` 即可。
+
+## 验证
+
+```bash
+node --test tests/validate.mjs
+```

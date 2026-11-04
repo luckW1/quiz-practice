@@ -30,6 +30,10 @@ html, body {
 }
 
 button { font-family: inherit; font-size: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible {
+  outline: 3px solid rgba(79, 70, 229, .28);
+  outline-offset: 2px;
+}
 
 .app {
   display: grid;
@@ -141,8 +145,6 @@ button { font-family: inherit; font-size: inherit; cursor: pointer; }
   transition: .15s;
 }
 .ghost:hover { color: var(--no); border-color: #fecaca; background: var(--no-soft); }
-
-.tips { margin: auto 0 0; font-size: 12px; color: #9aa1b1; line-height: 1.6; }
 
 /* ---------- 主区 ---------- */
 .main {
@@ -352,7 +354,7 @@ pre.code .cl::before {
 .fill-row input:focus { border-color: #a5b4fc; box-shadow: 0 0 0 3px rgba(99, 102, 241, .12); }
 .fill-row input.ok { border-color: #86efac; background: var(--ok-soft); }
 .fill-row input.bad { border-color: #fca5a5; background: var(--no-soft); }
-.fill-row .expected { font-size: 13px; color: var(--ok); min-width: 0; word-break: break-all; }
+.fill-row .expected { font-size: 13px; color: var(--no); min-width: 0; word-break: break-all; }
 
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
 
@@ -401,6 +403,7 @@ pre.code .cl::before {
 .feedback.info { background: #f8fafc; color: #334155; border: 1px solid var(--line); }
 .feedback .ans { font-weight: 700; }
 .feedback .fix { margin-left: auto; }
+.feedback > span { min-width: 0; overflow-wrap: anywhere; }
 
 .navbar { display: flex; gap: 10px; justify-content: flex-end; }
 .navbar button {
@@ -468,6 +471,7 @@ pre.code .cl::before {
     background: #fff;
   }
   .sidebar.open { display: flex; }
+  body.menu-open { overflow: hidden; }
 
   .closeBtn {
     display: inline-flex;
@@ -489,8 +493,6 @@ pre.code .cl::before {
     background: rgba(17, 24, 39, .38);
   }
   .scrim.show { display: block; }
-
-  .tips { margin-top: 6px; }
 
   .main {
     padding: 14px 14px calc(16px + env(safe-area-inset-bottom));
