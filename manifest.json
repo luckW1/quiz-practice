@@ -1,0 +1,16 @@
+{
+  "name": "题库随机练习",
+  "short_name": "题库练习",
+  "description": "Java 程序设计基础与数据库原理题库，随机练习、即时判分。",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f5f9",
+  "theme_color": "#4f46e5",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
